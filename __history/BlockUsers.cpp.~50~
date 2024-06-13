@@ -1,0 +1,59 @@
+//---------------------------------------------------------------------------
+
+#include <fmx.h>
+#pragma hdrstop
+
+#include "BlockUsers.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.fmx"
+TMyBlockUsersForm *MyBlockUsersForm;
+//---------------------------------------------------------------------------
+__fastcall TMyBlockUsersForm::TMyBlockUsersForm(TComponent* Owner)
+	: TForm(Owner)
+{
+}
+//---------------------------------------------------------------------------
+void __fastcall TMyBlockUsersForm::ViewUsersClick(TObject *Sender)
+{
+		UsersList->Clear();
+		String command = "VIEW_ALL_USERS";
+		String users = viewUsers(AnsiString(command).c_str());
+
+		//ShowMessage(users);
+
+		TStringList *lines = new TStringList();
+		lines->Text = users;
+
+		for (int i = 0; i < lines->Count; i++) {
+            UsersList->Items->Add(lines->Strings[i]);
+		}
+
+
+
+		//UsersList->Items->Add(users);
+
+
+		//UsersList->Clear();
+}
+//---------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+
+void __fastcall TMyBlockUsersForm::BockUserClick(TObject *Sender)
+{
+	AnsiString username = BlockUserEdit->Text;
+
+    String command = "BLOCK_USER";
+
+	if (username.IsEmpty()) {
+		ShowMessage("Please enter the user you want to block");
+		return;
+	}
+
+	String text = blockUser(AnsiString(command).c_str()	, username.c_str());
+
+	ShowMessage(text);
+}
+//---------------------------------------------------------------------------
+

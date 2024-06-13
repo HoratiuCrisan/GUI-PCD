@@ -1,0 +1,254 @@
+//---------------------------------------------------------------------------
+#pragma hdrstop
+
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iostream>
+
+#pragma comment(lib, "Ws2_32.lib")
+
+#define PORT "8080"
+#define SERVER_ADDR "127.0.0.1"
+
+#include "UnixSocketHelper.h"
+
+#define SOCKET_PATH "/tmp/admin_socket"
+
+SOCKET ConnectSocket = INVALID_SOCKET;
+
+String initializeWinsockAndConnect() {
+	WSADATA wsaData;
+	int iResult;
+
+	// Initialize Winsock
+	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0) {
+		std::cerr << "WSAStartup failed: " << iResult << std::endl;
+		return "WSAStartup failed";
+	}
+
+	struct addrinfo *result = NULL, *ptr = NULL, hints;
+
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	// Resolve the server address and port
+	iResult = getaddrinfo(SERVER_ADDR, PORT, &hints, &result);
+	if (iResult != 0) {
+		std::cerr << "getaddrinfo failed: " << iResult << std::endl;
+		WSACleanup();
+		return "Failed to get address info";
+	}
+
+	// Attempt to connect to an address until one succeeds
+	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
+		// Create a SOCKET for connecting to server
+		ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+		if (ConnectSocket == INVALID_SOCKET) {
+			std::cerr << "Socket failed: " << WSAGetLastError() << std::endl;
+			WSACleanup();
+			return "Failed to create the socket";
+		}
+
+		// Connect to server
+		iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+		if (iResult == SOCKET_ERROR) {
+			closesocket(ConnectSocket);
+			ConnectSocket = INVALID_SOCKET;
+			continue;
+		}
+		break;
+	}
+
+	freeaddrinfo(result);
+
+	if (ConnectSocket == INVALID_SOCKET) {
+		std::cerr << "Unable to connect to server!" << std::endl;
+		WSACleanup();
+		return "Failed to connect to the server!";
+	}
+
+	std::cout << "Connected to server." << std::endl;
+
+	return "Admin connected to socket!";
+}
+
+String sendMessage(const std::string &message) {
+	int iResult = send(ConnectSocket, message.c_str(), (int)message.length(), 0);
+	if (iResult == SOCKET_ERROR) {
+		//throw std::runtime_error("Send failed");
+		std::cerr << "Failed to send message to the server!" << iResult << std::endl;
+		return "Failed to send message to the server!" ;
+	}
+
+	return "Message sent successfully!";
+}
+
+String logout(const std::string &message) {
+	int iResult = send(ConnectSocket, message.c_str(), (int)message.length(), 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to send message to the server!" << iResult << std::endl;
+        return "Failed to logout from the server!";
+	}
+
+    return "Logout successfully!";
+}
+
+String viewUsers(const std::string &message) {
+	char buffer[5024];
+	int iResult = send(ConnectSocket, message.c_str(), (int)message.length(), 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to send message to the server!" << iResult << std::endl;
+		return "Failed to send fetching users request from the server!";
+	}
+
+	iResult = recv(ConnectSocket, buffer, 5024, 0);
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to get message from the server!" << iResult << std::endl;
+		return "Failed to fetch users from the server!";
+	}
+
+	String users = "";
+	for (int i = 0; i < strlen(buffer); i++) {
+        users += buffer[i];
+	}
+
+    return users;
+}
+
+String viewLogs(const std::string &message) {
+    char buffer[1024];
+	int iResult = send(ConnectSocket, message.c_str(), (int)message.length(), 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to request server logs!" << iResult << std::endl;
+		return "Failed to request server logs!";
+	}
+
+	iResult = recv(ConnectSocket, buffer, 1024, 0);
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to get the response message from the server" << iResult << std::endl;
+        return "Failed to get the response message from the server";
+	}
+
+	String response = "";
+
+	for (int i = 0; i < strlen(buffer); i++) {
+        response += buffer[i];
+	}
+
+
+	return response;
+}
+
+String sendLoginInfo(const std::string &command, const std::string &username, const std::string &password) {
+	char buffer[1024];
+
+	std::string loginInfo = command + " " + username + " " + password;
+
+	int iResult = send(ConnectSocket, loginInfo.c_str(), loginInfo.length(), 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to send login info to the unix server" << iResult << std::endl;
+		return "Failed to send login infor to the server";
+	}
+
+	iResult = recv(ConnectSocket, buffer, 1024, 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to login to the server" << iResult << std::endl;
+		return "Failed to login to the server";
+	}
+
+    return "ok";
+}
+
+String blockUser(const std::string &command, const std::string &username) {
+	char buffer[1024];
+
+	std::string message = command + " " + username;
+
+	int iResult = send(ConnectSocket, message.c_str(), message.length(), 0);
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to send blocked user to the server " << iResult << std::endl;
+		return "Failed to send blocked user to the server ";
+	}
+
+	iResult = recv(ConnectSocket, buffer, 1024, 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Failed to receive answer from the server " << iResult << std::endl;
+        return "Failed to receive answer from the server";
+	}
+
+	String response = "";
+
+	for (int i = 0; i < strlen(buffer); i++) {
+        response += buffer[i];
+	}
+
+    return response;
+}
+
+String unblockUser(const std::string &command, const std::string &username) {
+	char buffer[1024];
+
+	std::string message = command + " " + username;
+
+	int iResult = send(ConnectSocket, message.c_str(), message.length(), 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Error at sending username to be unblock " << iResult << std::endl;
+        return "Error at sending username to unbock";
+	}
+
+	iResult = recv(ConnectSocket, buffer, 1024, 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Error at receiving confirmation message " << iResult << std::endl;
+        return "Error at receiving confirmation message";
+	}
+
+	String response = "";
+
+	for (int i = 0; i < strlen(buffer) ; i++) {
+        response += buffer[i];
+	}
+
+    return response;
+}
+
+String deleFile(const std::string &command, const std::string &filePath) {
+	char buffer[1024];
+
+	std::string message = command + " " + filePath;
+
+	int iResult = send(ConnectSocket, message.c_str(), message.length(), 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Error at sending file for delete " << iResult << std::endl;
+        return "Error at sending file for delete";
+	}
+
+	iResult = recv(ConnectSocket, buffer, 1024, 0);
+
+	if (iResult == SOCKET_ERROR) {
+		std::cerr << "Error at receiving confirmation message " << iResult << std::endl;
+        return "Error at receiving confirmation message";
+	}
+
+	String response = "";
+
+	for (int i = 0; i < strlen(buffer); i++) {
+        response += buffer[i];
+	}
+
+    return response;
+}

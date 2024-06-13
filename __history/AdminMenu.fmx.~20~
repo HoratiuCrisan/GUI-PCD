@@ -1,0 +1,73 @@
+object MyAdminForm: TMyAdminForm
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object AdminText: TText
+    Position.X = 264.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 50.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'My Admin Page'
+  end
+  object ViewLogsButton: TButton
+    Position.X = 56.000000000000000000
+    Position.Y = 176.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'View Logs'
+    TextSettings.Trimming = None
+    OnClick = ViewLogsButtonClick
+  end
+  object ViewUsersButton: TButton
+    Position.X = 456.000000000000000000
+    Position.Y = 176.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'View Active Users'
+    TextSettings.Trimming = None
+    OnClick = ViewUsersButtonClick
+    object UnblockUserButton: TButton
+      Position.Y = 96.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 41.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'Unblock User'
+      TextSettings.Trimming = None
+      OnClick = UnblockUserButtonClick
+    end
+  end
+  object BlockUserButton: TButton
+    Position.X = 56.000000000000000000
+    Position.Y = 272.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Text = 'Block User'
+    TextSettings.Trimming = None
+    OnClick = BlockUserButtonClick
+  end
+  object LogoutButton: TButton
+    Position.X = 264.000000000000000000
+    Position.Y = 376.000000000000000000
+    Size.Width = 121.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'Logout'
+    TextSettings.Trimming = None
+    OnClick = LogoutButtonClick
+  end
+end

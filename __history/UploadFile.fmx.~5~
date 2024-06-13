@@ -1,0 +1,34 @@
+object MyUploadFileForm: TMyUploadFileForm
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object SelectFile: TButton
+    Position.X = 256.000000000000000000
+    Position.Y = 168.000000000000000000
+    TabOrder = 1
+    Text = 'SelectFile'
+    TextSettings.Trimming = None
+    OnClick = SelectFileClick
+  end
+  object Expander1: TExpander
+    Position.X = 208.000000000000000000
+    Position.Y = 80.000000000000000000
+    ShowCheck = False
+    Size.Width = 200.000000000000000000
+    Size.Height = 25.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Expander1'
+    TabOrder = 3
+    ContentSize = '0'
+  end
+  object XMLFileUpload: TOpenDialog
+    Left = 280
+    Top = 200
+  end
+end

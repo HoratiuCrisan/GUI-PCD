@@ -1,0 +1,30 @@
+//---------------------------------------------------------------------------
+
+#ifndef UploadFileH
+#define UploadFileH
+//---------------------------------------------------------------------------
+#include <System.Classes.hpp>
+#include <FMX.Controls.hpp>
+#include <FMX.Forms.hpp>
+#include <FMX.Controls.Presentation.hpp>
+#include <FMX.Dialogs.hpp>
+#include <FMX.StdCtrls.hpp>
+#include <FMX.Types.hpp>
+#include <FireDAC.Comp.BatchMove.hpp>
+#include <FireDAC.Comp.BatchMove.Text.hpp>
+#include <FireDAC.Stan.Intf.hpp>
+//---------------------------------------------------------------------------
+class TMyUploadFileForm : public TForm
+{
+__published:	// IDE-managed Components
+	TOpenDialog *XMLFileUpload;
+	TButton *SelectFile;
+	void __fastcall SelectFileClick(TObject *Sender);
+private:	// User declarations
+public:		// User declarations
+	__fastcall TMyUploadFileForm(TComponent* Owner);
+};
+//---------------------------------------------------------------------------
+extern PACKAGE TMyUploadFileForm *MyUploadFileForm;
+//---------------------------------------------------------------------------
+#endif

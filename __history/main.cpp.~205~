@@ -1,0 +1,335 @@
+#pragma hdrstop
+#include <vcl.h>
+#include <winsock2.h>
+#include <iostream>
+
+#pragma comment(lib, "ws2_32.lib")
+#pragma hdrstop
+
+#pragma argsused
+
+#pragma comment(lib, "ws2_32.lib")
+
+#define PORT 12345
+#define SERVER_IP "127.0.0.1"
+#define BUFFER_SIZE 1024
+#define END_OF_FILE_MARKER "END_OF_FILE"
+
+#include "main.h"
+
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+
+std::string convert_windows_to_linux_path(const std::string& windows_path) {
+	std::string linux_path = "/mnt/";
+
+	// Add the drive letter in lowercase
+	linux_path += tolower(windows_path[0]);
+
+	// Add the rest of the path starting from the root
+	linux_path += windows_path.substr(2);
+
+	// Replace backslashes with forward slashes
+	std::replace(linux_path.begin(), linux_path.end(), '\\', '/');
+
+	return linux_path;
+}
+
+
+String sendCredentials(const std::string &username, const std::string &password, const std::string &command) {
+	WSADATA wsa;
+	SOCKET s;
+	struct sockaddr_in server;
+	char message[1024];
+	char buffer[1024];
+
+	WSAStartup(MAKEWORD(2, 2), &wsa);
+
+	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+		printf("Could not create socket : %d\n", WSAGetLastError());
+		return "Could not create socket!";
+	}
+
+	server.sin_addr.s_addr = inet_addr(SERVER_IP);
+	server.sin_family = AF_INET;
+	server.sin_port = htons(PORT);
+
+	if (connect(s, (struct sockaddr *)&server, sizeof(server)) < 0) {
+		printf("Connect error\n");
+		return "Connection error!";
+	}
+
+	snprintf(message, sizeof(message), "%s %s %s", command.c_str() , username.c_str(), password.c_str());
+
+	if (send(s, message, strlen(message), 0) < 0) {
+		printf("Could not send the login messge to the server: %s!\n", message);
+		return "Failed to send login message!";
+	}
+
+	if (recv(s, buffer, 1024, 0) < 0) {
+		printf("Could not receive the answer from the server after login!\n");
+		return "Failed to receive answer";
+	}
+
+	//buffer[strlen(buffer) - 1] = '\0';
+
+	String response = "";
+
+
+	for (int i = 0; i < strlen(buffer); i++) {
+		response += buffer[i];
+	}
+
+
+	closesocket(s);
+	WSACleanup();
+
+	return response;
+}
+
+
+
+String uploadFile(const std::string &command, const std::string &filePath) {
+	WSADATA wsa;
+	SOCKET s;
+	struct sockaddr_in server;
+	char buffer[1024];
+
+	// Initialize Winsock
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		printf("WSAStartup failed. Error Code : %d\n", WSAGetLastError());
+		return "WSAStartup failed!";
+	}
+
+	// Create socket
+	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+		printf("Could not create socket : %d\n", WSAGetLastError());
+		WSACleanup();
+		return "Could not create socket!";
+	}
+
+	server.sin_addr.s_addr = inet_addr(SERVER_IP);
+	server.sin_family = AF_INET;
+	server.sin_port = htons(PORT);
+
+	// Connect to remote server
+	if (connect(s, (struct sockaddr *)&server, sizeof(server)) < 0) {
+		printf("Connect error\n");
+		closesocket(s);
+		WSACleanup();
+		return "Connection error!";
+	}
+
+	std::string linux_path = convert_windows_to_linux_path(filePath);
+	std::string message = command + " " + linux_path + "\n";
+
+	// Send the command and file path
+	if (send(s, message.c_str(), message.length(), 0) < 0) {
+		printf("Error sending upload message to the server\n");
+		closesocket(s);
+		WSACleanup();
+		return "Error sending upload message!";
+	}
+
+	// Wait for acknowledgment (optional, but recommended for synchronization)
+	int recv_size = recv(s, buffer, sizeof(buffer) - 1, 0);
+	if (recv_size == SOCKET_ERROR || recv_size == 0) {
+		printf("Error receiving acknowledgment from the server\n");
+		closesocket(s);
+		WSACleanup();
+		return "Error receiving acknowledgment!";
+	}
+	buffer[recv_size] = '\0';
+	if (strcmp(buffer, "ACK") != 0) {
+		printf("Invalid acknowledgment from the server: %s\n", buffer);
+		closesocket(s);
+		WSACleanup();
+		return "Invalid acknowledgment!";
+	}
+
+	// Send the file contents
+	std::ifstream file(filePath, std::ios::binary);
+	if (!file) {
+		printf("Could not open file: %s\n", filePath.c_str());
+		closesocket(s);
+		WSACleanup();
+		return "Could not open file!";
+	}
+
+	while (file.read(buffer, sizeof(buffer)) || file.gcount() > 0) {
+		if (send(s, buffer, file.gcount(), 0) < 0) {
+			printf("Error sending file contents to the server\n");
+			file.close();
+			closesocket(s);
+			WSACleanup();
+			return "Error sending file contents!";
+		}
+	}
+
+	// Send the end-of-file marker
+	std::string eof_marker = "END_OF_FILE";
+	send(s, eof_marker.c_str(), eof_marker.length(), 0);
+
+
+	if (recv(s, buffer, 1024, 0) < 0) {
+		printf("Error at receiving message");
+		file.close();
+		closesocket(s);
+		WSACleanup();
+		return "Error at receiving message";
+	}
+
+    buffer[strlen(buffer) - 1] =  '\0';
+
+	String text = "";
+
+	for (int i = 0; i < strlen(buffer); i++) {
+		text += buffer[i];
+	}
+
+	file.close();
+	closesocket(s);
+	WSACleanup();
+
+
+	return "File converted successfully!";
+}
+
+
+String clientLogout(const std::string &command) {
+	WSADATA wsa;
+	SOCKET s;
+	struct sockaddr_in server;
+	char buffer[1024];
+
+	// Initialize Winsock
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		printf("WSAStartup failed. Error Code : %d\n", WSAGetLastError());
+		return "WSAStartup failed!";
+	}
+
+	// Create socket
+	if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+		printf("Could not create socket : %d\n", WSAGetLastError());
+		WSACleanup();
+		return "Could not create socket!";
+	}
+
+	server.sin_addr.s_addr = inet_addr(SERVER_IP);
+	server.sin_family = AF_INET;
+	server.sin_port = htons(PORT);
+
+	// Connect to remote server
+	if (connect(s, (struct sockaddr *)&server, sizeof(server)) < 0) {
+		printf("Connect error\n");
+		closesocket(s);
+		WSACleanup();
+		return "Connection error!";
+	}
+
+	if (send(s, command.c_str()	, command.length(), 0) < 0) {
+		printf("Error at sending upload message to the server\n");
+		closesocket(s);
+		WSACleanup();
+		return "Error at sending upload message!";
+	}
+
+	if (recv(s, buffer, 1024, 0)< 0) {
+		printf("Failed to receive response from the server");
+		closesocket(s);
+		WSACleanup();
+        return "Failed to receive response from the server";
+	}
+
+
+	String response = "";
+
+	for (int i = 0; i < strlen(buffer); i++) {
+		response += buffer[i];
+	}
+
+    return response;
+}
+
+String downloadFile(const std::string &command, const std::string &downloadPath) {
+    WSADATA wsa;
+    SOCKET s;
+    struct sockaddr_in server;
+    char buffer[1024];
+
+    // Initialize Winsock
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+        printf("WSAStartup failed. Error Code : %d\n", WSAGetLastError());
+        return "WSAStartup failed!";
+    }
+
+    // Create socket
+    if ((s = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+        printf("Could not create socket : %d\n", WSAGetLastError());
+        WSACleanup();
+        return "Could not create socket!";
+    }
+
+    server.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server.sin_family = AF_INET;
+    server.sin_port = htons(PORT);
+
+    // Connect to remote server
+    if (connect(s, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        printf("Connect error\n");
+        closesocket(s);
+        WSACleanup();
+        return "Connection error!";
+    }
+
+    std::string message = command + " " + downloadPath;
+
+    // Send the command and download path
+    if (send(s, message.c_str(), message.length(), 0) < 0) {
+        printf("Error sending download command to the server\n");
+        closesocket(s);
+        WSACleanup();
+        return "Error sending download command!";
+    }
+
+    // Receive the file name from the server
+    int recv_size = recv(s, buffer, sizeof(buffer) - 1, 0);
+    if (recv_size <= 0) {
+        printf("Error receiving file name from the server\n");
+        closesocket(s);
+        WSACleanup();
+        return "Error receiving file name!";
+    }
+    buffer[recv_size] = '\0';
+    std::string file_name(buffer);
+
+    // Open the file to write the received data
+    std::string full_download_path = downloadPath + "/" + file_name;
+    std::ofstream file(full_download_path, std::ios::binary);
+    if (!file) {
+        printf("Could not open file: %s\n", full_download_path.c_str());
+        closesocket(s);
+        WSACleanup();
+        return "Could not open file!";
+    }
+
+    // Receive the file contents
+    while ((recv_size = recv(s, buffer, sizeof(buffer) - 1, 0)) > 0) {
+        if (std::string(buffer, recv_size).find("END_OF_FILE") != std::string::npos) {
+            file.write(buffer, recv_size - strlen("END_OF_FILE"));
+            break;
+        }
+        file.write(buffer, recv_size);
+    }
+
+    if (recv_size < 0) {
+        printf("Error receiving file contents from the server\n");
+    }
+
+    file.close();
+    closesocket(s);
+    WSACleanup();
+
+    return "File downloaded successfully!";
+}
+

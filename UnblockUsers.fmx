@@ -1,0 +1,71 @@
+object MyUnblockUsersForm: TMyUnblockUsersForm
+  Left = 0
+  Top = 0
+  Caption = 'MyUnblockUsersForm'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object Button1: TButton
+    Position.X = -232.000000000000000000
+    Position.Y = 312.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 41.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Text = 'Button1'
+    TextSettings.Trimming = None
+  end
+  object UnblockUserButton: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 376.000000000000000000
+    Size.Width = 136.000000000000000000
+    Size.Height = 38.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Text = 'Unblock User'
+    TextSettings.Trimming = None
+    OnClick = UnblockUserButtonClick
+  end
+  object UnblockUsersEdit: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 2
+    Position.X = 96.000000000000000000
+    Position.Y = 376.000000000000000000
+    Size.Width = 169.000000000000000000
+    Size.Height = 38.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Text1: TText
+    Position.X = 200.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 209.000000000000000000
+    Size.Height = 50.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Unblock User'
+  end
+  object ViewUsersButton: TButton
+    Position.X = 432.000000000000000000
+    Position.Y = 216.000000000000000000
+    Size.Width = 113.000000000000000000
+    Size.Height = 38.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    Text = 'View Users'
+    TextSettings.Trimming = None
+    OnClick = ViewUsersButtonClick
+  end
+  object UsersList: TListBox
+    Position.X = 120.000000000000000000
+    Position.Y = 128.000000000000000000
+    TabOrder = 5
+    DisableFocusEffect = True
+    DefaultItemStyles.ItemStyle = ''
+    DefaultItemStyles.GroupHeaderStyle = ''
+    DefaultItemStyles.GroupFooterStyle = ''
+    Viewport.Width = 196.000000000000000000
+    Viewport.Height = 196.000000000000000000
+  end
+end
